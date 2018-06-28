@@ -19,6 +19,7 @@
     find_common_seq/4,
     get_missing_revs/4,
     update_docs/4,
+    pull_from_seed/1,
     load_checkpoint/4,
     save_checkpoint/6
 ]).
@@ -27,6 +28,7 @@
 -export([
     find_common_seq_rpc/3,
     load_checkpoint_rpc/3,
+    pull_replication_rpc/1,
     save_checkpoint_rpc/5
 ]).
 
@@ -34,6 +36,11 @@
 -include("mem3.hrl").
 -include_lib("couch/include/couch_db.hrl").
 
+% "Pull" is a bit of a misnomer here, as what we're actually doing is
+% issuing an RPC request and telling the remote node to push updates to
+% us. This lets us reuse all of the battle-tested machinery of mem3_rpc.
+pull_from_seed(Seed) ->
+    rexi_call(Seed, {mem3_rpc, pull_replication_rpc, [node()]}).
 
 get_missing_revs(Node, DbName, IdsRevs, Options) ->
     rexi_call(Node, {fabric_rpc, get_missing_revs, [DbName, IdsRevs, Options]}).
@@ -126,6 +133,12 @@ find_common_seq_rpc(DbName, SourceUUID, SourceEpochs) ->
     Error ->
         rexi:reply(Error)
     end.
+
+pull_replication_rpc(Target) ->
+    Dbs = mem3_sync:local_dbs(),
+    Opts = [{batch_size, 1000}, {batch_count, 50}],
+    Repl = fun(Db) -> {Db, mem3_rep:go(Db, Target, Opts)} end,
+    rexi:reply({ok, lists:map(Repl, Dbs)}).
 
 
 %% @doc Return the sequence where two files with the same UUID diverged.
