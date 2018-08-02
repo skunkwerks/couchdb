@@ -758,7 +758,7 @@ db_doc_req(#httpd{method='GET', mochi_req=MochiReq}=Req, Db, DocId) ->
 
 db_doc_req(#httpd{method='POST', user_ctx=Ctx}=Req, Db, DocId) ->
     couch_httpd:validate_referer(Req),
-    couch_doc:validate_docid(DocId, couch_db:name(Db)),
+    validate_docid(DocId, couch_db:name(Db)),
     chttpd:validate_ctype(Req, "multipart/form-data"),
 
     W = chttpd:qs_value(Req, "w", integer_to_list(mem3:quorum(Db))),
@@ -814,7 +814,7 @@ db_doc_req(#httpd{method='PUT', user_ctx=Ctx}=Req, Db, DocId) ->
         update_type = UpdateType
     } = parse_doc_query(Req),
     DbName = couch_db:name(Db),
-    couch_doc:validate_docid(DocId, DbName),
+    validate_docid(DocId, DbName),
 
     W = chttpd:qs_value(Req, "w", integer_to_list(mem3:quorum(Db))),
     Options = [{user_ctx,Ctx}, {w,W}],
@@ -1291,7 +1291,7 @@ db_attachment_req(#httpd{method=Method, user_ctx=Ctx}=Req, Db, DocId, FileNamePa
                 % check for the existence of the doc to handle the 404 case.
                 couch_doc_open(Db, DocId, nil, [])
             end,
-            couch_doc:validate_docid(DocId, couch_db:name(Db)),
+            validate_docid(DocId, couch_db:name(Db)),
             #doc{id=DocId};
         Rev ->
             case fabric:open_revs(Db, DocId, [Rev], [{user_ctx,Ctx}]) of
@@ -1765,6 +1765,11 @@ bulk_get_json_error(DocId, Rev, Error, Reason) ->
                              {<<"rev">>, Rev},
                              {<<"error">>, Error},
                              {<<"reason">>, Reason}]}}]}).
+
+validate_docid(DocId, DbName) ->
+    Partitioned = mem3:is_partitioned(DbName),
+    Options = [{partitioned, Partitioned}],
+    couch_doc:validate_docid(DocId, DbName, Options).
 
 
 -ifdef(TEST).
