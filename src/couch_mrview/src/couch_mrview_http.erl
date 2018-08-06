@@ -461,8 +461,10 @@ row_to_json(Id0, Row) ->
     ?JSON_ENCODE(Obj).
 
 
-parse_params(#httpd{}=Req, Keys) ->
-    parse_params(chttpd:qs(Req), Keys);
+parse_params(#httpd{path_parts=[DbName | _]}=Req, Keys) ->
+    Args = parse_params(chttpd:qs(Req), Keys),
+    Partitioned = mem3:is_partitioned(DbName),
+    couch_mrview_util:set_extra(Args, partitioned, Partitioned);
 parse_params(Props, Keys) ->
     Args = #mrargs{},
     parse_params(Props, Keys, Args).
@@ -582,6 +584,9 @@ parse_param(Key, Val, Args, IsDecoded) ->
             Args#mrargs{callback=couch_util:to_binary(Val)};
         "sorted" ->
             Args#mrargs{sorted=parse_boolean(Val)};
+        "partition" ->
+            Partition = couch_util:to_binary(Val),
+            couch_mrview_util:set_extra(Args, partition, Partition);
         _ ->
             BKey = couch_util:to_binary(Key),
             BVal = couch_util:to_binary(Val),
