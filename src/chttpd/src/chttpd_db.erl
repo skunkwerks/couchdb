@@ -338,7 +338,7 @@ create_db_req(#httpd{}=Req, DbName) ->
     Q = chttpd:qs_value(Req, "q", config:get("cluster", "q", "8")),
     P = chttpd:qs_value(Req, "placement", config:get("cluster", "placement")),
     EngineOpt = parse_engine_opt(Req),
-    Partitioned = parse_partitioned_opt(Req),
+    Partitioned = parse_partitioned_opt(Req, DbName),
     Options = [
         {n, N},
         {q, Q},
@@ -1469,13 +1469,15 @@ parse_engine_opt(Req) ->
     end.
 
 
-parse_partitioned_opt(Req) ->
-    case chttpd:qs_value(Req, "partitioned") of
-        undefined ->
+parse_partitioned_opt(Req, DbName) ->
+    case {chttpd:qs_value(Req, "partitioned"), couch_db:is_system_db(DbName)} of
+        {undefined, _ } ->
             false;
-        "true" ->
+        {"true", false} ->
             true;
-        _ ->
+        {"true", true} ->
+            throw({bad_request, <<"Cannot partition a system database">>});
+        {_, _} ->
             throw({bad_request, <<"`partitioned` parameter can only be set to true.">>})
     end.
 

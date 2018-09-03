@@ -183,6 +183,8 @@ is_db(#db{}) ->
 is_db(_) ->
     false.
 
+is_system_db(DbName) when is_list(DbName); is_binary(DbName) ->
+    is_systemdb(DbName);
 is_system_db(#db{options = Options}) ->
     lists:member(sys_db, Options).
 
