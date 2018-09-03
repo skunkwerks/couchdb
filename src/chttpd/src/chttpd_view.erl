@@ -24,7 +24,7 @@ multi_query_view(Req, Db, DDoc, ViewName, Queries) ->
         QueryArg = couch_mrview_http:parse_params(Query, undefined,
             Args1, [decoded]),
         QueryArg1 = couch_mrview_util:set_view_type(QueryArg, ViewName, Views),
-        couch_mrview_util:validate_args(QueryArg1, [view])
+        couch_mrview_util:validate_args(QueryArg1)
     end, Queries),
     Options = [{user_ctx, Req#httpd.user_ctx}],
     VAcc0 = #vacc{db=Db, req=Req, prepend="\r\n"},
@@ -40,8 +40,13 @@ multi_query_view(Req, Db, DDoc, ViewName, Queries) ->
     chttpd:end_delayed_json_response(Resp1).
 
 
-design_doc_view(Req, Db, DDoc, ViewName, Keys) ->
-    Args = couch_mrview_http:parse_params(Req, Keys),
+design_doc_view(#httpd{path_parts=[DbName | _]}=Req, Db, DDoc, ViewName, Keys) ->
+    Args0 = couch_mrview_http:parse_params(Req, Keys),
+    {Props} = DDoc#doc.body,
+    {Options} = couch_util:get_value(<<"options">>, Props, {[]}),
+    DbPartitioned = mem3:is_partitioned(DbName),
+    Partitioned = couch_util:get_value(<<"partitioned">>, Options, DbPartitioned),
+    Args = couch_mrview_util:set_extra(Args0, partitioned, Partitioned),
     design_doc_view_int(Req, Db, DDoc, ViewName, Args).
 
 
@@ -115,7 +120,8 @@ handle_partition_view_req(#httpd{method='POST',
             couch_stats:increment_counter([couchdb, httpd, view_reads]),
             Args0 = couch_mrview_http:parse_params(Req, Keys),
             Args1 = couch_mrview_util:set_extra(Args0, partition, Partition),
-            design_doc_view_int(Req, Db, DDoc, ViewName, Args1);
+            Args2 = couch_mrview_util:set_extra(Args1, partitioned, true),
+            design_doc_view_int(Req, Db, DDoc, ViewName, Args2);
         _ ->
             throw({
                 bad_request,

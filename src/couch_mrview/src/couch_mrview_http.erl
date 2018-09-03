@@ -461,10 +461,8 @@ row_to_json(Id0, Row) ->
     ?JSON_ENCODE(Obj).
 
 
-parse_params(#httpd{path_parts=[DbName | _]}=Req, Keys) ->
-    Args = parse_params(chttpd:qs(Req), Keys),
-    Partitioned = mem3:is_partitioned(DbName),
-    couch_mrview_util:set_extra(Args, partitioned, Partitioned);
+parse_params(#httpd{}=Req, Keys) ->
+    parse_params(chttpd:qs(Req), Keys);
 parse_params(Props, Keys) ->
     Args = #mrargs{},
     parse_params(Props, Keys, Args).

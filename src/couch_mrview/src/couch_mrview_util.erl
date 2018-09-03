@@ -24,7 +24,7 @@
 -export([temp_view_to_ddoc/1]).
 -export([calculate_external_size/1]).
 -export([calculate_active_size/1]).
--export([validate_args/1, validate_args/2]).
+-export([validate_args/1]).
 -export([maybe_load_doc/3, maybe_load_doc/4]).
 -export([maybe_update_index_file/1]).
 -export([extract_view/4, extract_view_reduce/1]).
@@ -465,9 +465,6 @@ fold_reduce({NthRed, Lang, View}, Fun,  Acc, Options) ->
 
 
 validate_args(Args) ->
-    validate_args(Args, []).
-
-validate_args(Args, ValidateOptions) ->
     GroupLevel = determine_group_level(Args),
     Reduce = Args#mrargs.reduce,
     case Reduce == undefined orelse is_boolean(Reduce) of
@@ -608,13 +605,6 @@ validate_args(Args, ValidateOptions) ->
             ok;
         {normal, false, _Partition} ->
             mrverror(<<"`partition` parameter is not supported in this view.">>)
-    end,
-
-    case {Partitioned, Args#mrargs.include_docs, ValidateOptions} of
-        {true, true, [view]} ->
-            mrverror(<<"`include_docs=true` is not supported in this view.">>);
-        {_, _, _} ->
-            ok
     end,
 
     case {Partitioned, Args#mrargs.conflicts} of

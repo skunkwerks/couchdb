@@ -360,7 +360,6 @@ is_partitioned(#shard{opts=Opts}) ->
 is_partitioned(#ordered_shard{opts=Opts}) ->
     couch_util:get_value(partitioned, Opts) == true.
 
-
 -ifdef(TEST).
 
 -include_lib("eunit/include/eunit.hrl").
