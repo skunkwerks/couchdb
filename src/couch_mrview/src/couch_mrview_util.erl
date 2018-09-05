@@ -599,8 +599,8 @@ validate_args(Args) ->
             mrverror(<<"`partition` parameter is not supported in this db.">>);
         {normal, true, undefined} ->
             mrverror(<<"`partition` parameter is mandatory for queries to this view.">>);
-        {normal, true, _Partition} ->
-            ok;
+        {normal, true, Partition} ->
+            couch_doc:validate_docid(Partition);
         {normal, false, undefined} ->
             ok;
         {normal, false, _Partition} ->
