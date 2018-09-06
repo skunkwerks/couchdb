@@ -221,7 +221,7 @@ validate_docid(DocId, DbName, Options) ->
                     case binary:split(DocId, <<":">>) of
                         [<<"_design/", _/binary>> | _Rest] ->
                             validate_docid(DocId);
-                        [Partition, Rest] ->
+                        [Partition, Rest] when Rest =/= <<>> ->
                             ok = validate_docid(Partition),
                             validate_docid(Rest);
                         _ ->

@@ -471,7 +471,8 @@ db_req(#httpd{method='POST',path_parts=[_,<<"_bulk_docs">>], user_ctx=Ctx}=Req, 
     true ->
         Docs = lists:map(
             fun(JsonObj) ->
-                Doc = couch_doc:from_json_obj_validate(JsonObj),
+                DbName = couch_db:name(Db),
+                Doc = couch_doc:from_json_obj_validate(JsonObj, DbName),
                 validate_attachment_names(Doc),
                 Id = case Doc#doc.id of
                     <<>> -> couch_uuids:new();
@@ -1701,7 +1702,7 @@ bulk_get_open_doc_revs(Db, {Props}, Options) ->
 
 
 bulk_get_open_doc_revs1(Db, Props, Options, {}) ->
-    case parse_field(<<"id">>, couch_util:get_value(<<"id">>, Props)) of
+    case parse_id_field(couch_util:get_value(<<"id">>, Props), Db) of
         {error, {DocId, Error, Reason}} ->
             {DocId, {error, {null, Error, Reason}}, Options};
 
@@ -1750,16 +1751,18 @@ bulk_get_open_doc_revs1(Db, Props, _, {DocId, Revs, Options}) ->
     end.
 
 
-parse_field(<<"id">>, undefined) ->
+parse_id_field(undefined, _Db) ->
     {ok, undefined};
-parse_field(<<"id">>, Value) ->
+parse_id_field(Value, Db) ->
     try
-        ok = couch_doc:validate_docid(Value),
+        ok = validate_docid(Value, couch_db:name(Db)),
         {ok, Value}
     catch
         throw:{Error, Reason} ->
             {error, {Value, Error, Reason}}
-    end;
+    end.
+
+
 parse_field(<<"rev">>, undefined) ->
     {ok, undefined};
 parse_field(<<"rev">>, Value) ->
