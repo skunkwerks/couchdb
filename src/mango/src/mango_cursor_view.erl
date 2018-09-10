@@ -103,20 +103,15 @@ base_args(#cursor{index = Idx, opts = Opts} = Cursor) ->
         end_key = mango_idx:end_key(Idx, Cursor#cursor.ranges),
         include_docs = true
     },
-    Args2 = case mem3:is_partitioned(Idx#idx.dbname) of
-        true ->
-            Partition = couch_util:get_value(partition, Opts),
-            add_partition_opts(Args1, Partition);
-        false ->
-            Args1
+    Partitioned = couch_util:get_value(partitioned, Idx#idx.design_opts),
+    Args2 = couch_mrview_util:set_extra(Args1, partitioned, Partitioned),
+    Args3 = case couch_util:get_value(partition, Opts) of
+        <<>> ->
+            Args2;
+        Partition ->
+            couch_mrview_util:set_extra(Args2, partition, Partition)
     end,
-    add_style(Idx, Args2).
-
-add_partition_opts(#mrargs{} = Args, <<>>) ->
-    Args;
-add_partition_opts(#mrargs{} = Args, Partition) ->
-    Args1 = couch_mrview_util:set_extra(Args, partitioned, true),
-    couch_mrview_util:set_extra(Args1, partition, Partition).
+    add_style(Idx, Args3).
 
 add_style(#idx{def = all_docs}, Args) ->
     couch_mrview_util:set_extra(Args, style, all_docs);

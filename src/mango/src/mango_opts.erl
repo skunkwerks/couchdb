@@ -13,7 +13,7 @@
 -module(mango_opts).
 
 -export([
-    validate_idx_create/1,
+    validate_idx_create/2,
     validate_find/1
 ]).
 
@@ -43,10 +43,16 @@
 -include("mango.hrl").
 
 
-validate_idx_create({Props}) ->
+validate_idx_create(DbName, {Props}) ->
     Opts = [
         {<<"index">>, [
             {tag, def}
+        ]},
+        {<<"partitioned">>, [
+            {tag, partitioned},
+            {optional, true},
+            {default, mem3:is_partitioned(DbName)},
+            {validator, fun is_boolean/1}
         ]},
         {<<"type">>, [
             {tag, type},
