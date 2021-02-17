@@ -16,7 +16,7 @@
 #include "config.h"
 
 static const char VERSION_TEMPLATE[] =
-    "%s - %s (SpiderMonkey 68)\n"
+    "%s - %s (SpiderMonkey 78)\n"
     "\n"
     "Licensed under the Apache License, Version 2.0 (the \"License\"); you may "
         "not use\n"
